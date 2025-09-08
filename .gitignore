@@ -31,3 +31,4 @@ Thumbs.db
 # Others
 bin/
 output/
+**/run/
