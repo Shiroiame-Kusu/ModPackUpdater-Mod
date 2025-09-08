@@ -1,3 +1,4 @@
+***Note, you need to host [ModPackUpdater](https://github.com/Shiroiame-Kusu/ModPackUpdater) yourself first if you want to use this mod***
 # ModPackUpdater (Client Mod)
 
 A multi-loader Minecraft client mod that syncs a local instance with a ModPackUpdater server. It discovers a pack, fetches a manifest, computes a local diff, and applies changes (add/update/delete) for mods, configs, resource packs, and other files.
