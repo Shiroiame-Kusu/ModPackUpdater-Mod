@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+
+# Local Gradle properties
+
+
+# Eclipse / IntelliJ IDEA / NetBeans
+*.iml
+*.ipr
+*.iws
+.idea/
+out/
+nbproject/private/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# JAR / WAR / EAR archives (if generated locally)
+*.jar
+*.war
+*.ear
+
+# Kotlin/Java compilation
+*.class
+
+# Others
+bin/
+output/

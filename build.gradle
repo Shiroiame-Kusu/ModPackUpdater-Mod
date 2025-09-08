@@ -1,0 +1,42 @@
+plugins {
+    // see https://fabricmc.net/develop/ for new versions
+    id 'fabric-loom' version '1.7-SNAPSHOT' apply false
+    // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
+    id 'net.neoforged.moddev' version '0.1.110' apply false
+}
+
+// Collect final mod jars from subprojects into a single folder
+def outputDir = file("${rootDir}/output")
+
+// Clean the output folder before collecting jars
+tasks.register('cleanOutput', Delete) {
+    description = 'Clean the output/ directory before collecting artifacts'
+    group = 'build'
+    delete(outputDir)
+}
+
+tasks.register('collectJars', Copy) {
+    description = 'Collect loader-specific mod jars into output/ directory'
+    group = 'distribution'
+    dependsOn(tasks.named('cleanOutput'))
+    into(outputDir)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    // Fabric/Forge/NeoForge jars; exclude sources/javadoc/dev artifacts
+    from(fileTree(dir: "${rootDir}/fabric/build/libs", includes: ['*.jar'], excludes: ['*-sources.jar','*-javadoc.jar','*-dev.jar']))
+    from(fileTree(dir: "${rootDir}/forge/build/libs", includes: ['*.jar'], excludes: ['*-sources.jar','*-javadoc.jar','*-dev.jar']))
+    from(fileTree(dir: "${rootDir}/neoforge/build/libs", includes: ['*.jar'], excludes: ['*-sources.jar','*-javadoc.jar','*-dev.jar']))
+}
+
+// Wire collection to run after builds finish (root and subprojects)
+gradle.projectsEvaluated {
+    // Root build
+    tasks.matching { it.name == 'build' }.configureEach {
+        finalizedBy(tasks.named('collectJars'))
+    }
+    // Each subproject build
+    subprojects { sub ->
+        sub.tasks.matching { it.name == 'build' }.configureEach {
+            finalizedBy(rootProject.tasks.named('collectJars'))
+        }
+    }
+}
