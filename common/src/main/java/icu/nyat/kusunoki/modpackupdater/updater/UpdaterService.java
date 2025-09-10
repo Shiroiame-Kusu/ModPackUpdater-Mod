@@ -17,7 +17,6 @@ public class UpdaterService {
     public static synchronized void bootstrap(Path gameDir) {
         if (started) return;
         started = true;
-        // Removed external applier/script setup (reverted to direct apply mode)
         Thread t = new Thread(() -> {
             try {
                 PendingOps.applyPending(gameDir);
@@ -26,9 +25,11 @@ public class UpdaterService {
                     Constants.LOG.info("ModPackUpdater: updates disabled for this session; skipping auto check.");
                     return;
                 }
-                Constants.LOG.info("ModPackUpdater: starting startup check for pack {}...", cfg.getPackId());
-                // Startup mode: check only, do not apply changes automatically; a prompt will be shown if needed
-                new UpdateRunner(gameDir, cfg, true).run();
+                boolean clientEnv = isClientEnvironment();
+                Constants.LOG.info("ModPackUpdater: starting startup check for pack {}... (env={})", cfg.getPackId(), clientEnv ? "client" : "server");
+                // If client side -> checkOnly so we can prompt. If dedicated server -> apply immediately (no prompt UI available).
+                boolean checkOnly = clientEnv;
+                new UpdateRunner(gameDir, cfg, checkOnly).run();
             } catch (Throwable t1) {
                 Constants.LOG.error("ModPackUpdater updater failed: {}", t1.toString());
             }
@@ -66,5 +67,14 @@ public class UpdaterService {
         PromptData d = pendingPrompt;
         pendingPrompt = null;
         return d;
+    }
+
+    private static boolean isClientEnvironment() {
+        try {
+            Class.forName("net.minecraft.client.Minecraft", false, UpdaterService.class.getClassLoader());
+            return true; // client classes present
+        } catch (Throwable ignored) {
+            return false; // dedicated server (no client classes)
+        }
     }
 }
