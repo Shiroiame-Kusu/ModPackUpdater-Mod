@@ -6,7 +6,6 @@ import com.terraformersmc.modmenu.api.ModMenuApi;
 public class ModMenuImpl implements ModMenuApi {
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return parent -> new icu.nyat.kusunoki.modpackupdater.ui.ConfigScreen(parent);
+        return parent -> icu.nyat.kusunoki.modpackupdater.fabric.ui.YaclConfigScreen.create(parent);
     }
 }
-

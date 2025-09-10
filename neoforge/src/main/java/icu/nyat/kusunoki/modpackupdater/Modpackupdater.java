@@ -21,9 +21,9 @@ public class Modpackupdater {
         CommonClass.init();
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            // Register config screen for NeoForge Mods UI (current API expects (Minecraft, Screen))
+            // Register YACL-based config screen for NeoForge Mods UI
             ModLoadingContext.get().registerExtensionPoint(IConfigScreenFactory.class,
-                    () -> (mc, parent) -> new icu.nyat.kusunoki.modpackupdater.ui.ConfigScreen(parent));
+                    () -> (mc, parent) -> icu.nyat.kusunoki.modpackupdater.neoforge.ui.YaclConfigScreen.create(parent));
         }
     }
 }

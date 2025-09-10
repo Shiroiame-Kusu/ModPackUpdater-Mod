@@ -3,6 +3,16 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+repositories {
+    maven { name = 'YACL'; url = 'https://maven.isxander.dev/releases' }
+    maven { name = 'KotlinForForge'; url = 'https://thedarkcolour.github.io/KotlinForForge/' }
+}
+
+dependencies {
+    implementation "dev.isxander:yet-another-config-lib:${yacl_neoforge_version}"
+}
+
+
 neoForge {
     version = neoforge_version
     // Automatically enable neoforge AccessTransformers if the file exists

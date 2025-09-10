@@ -27,7 +27,7 @@ public final class VersionGuard {
             if (manifest == null) return;
 
             // Resolve expected versions from manifest
-            String expectedMc = safe(manifest.minecraft);
+            String expectedMc = safe(manifest.mcVersion);
             String expectedLoaderName = manifest.loader != null ? safe(manifest.loader.name) : "";
             String expectedLoaderVer = manifest.loader != null ? safe(manifest.loader.version) : "";
 
@@ -91,4 +91,3 @@ public final class VersionGuard {
         return t;
     }
 }
-

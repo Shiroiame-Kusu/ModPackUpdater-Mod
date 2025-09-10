@@ -24,4 +24,12 @@ public class MixinTitleScreen {
         Constants.LOG.info("This line is printed by the ModPackUpdater mixin from NeoForge!");
         Constants.LOG.info("MC Version: {}", Minecraft.getInstance().getVersionType());
     }
+
+    @Inject(at = @At("TAIL"), method = "init()V")
+    private void initPost(CallbackInfo info) {
+        var pending = icu.nyat.kusunoki.modpackupdater.updater.UpdaterService.consumePendingPrompt();
+        if (pending != null && !icu.nyat.kusunoki.modpackupdater.updater.UpdaterService.areUpdatesDisabled()) {
+            icu.nyat.kusunoki.modpackupdater.ui.UpdatePrompt.show(pending.gameDir, pending.cfg, pending.adds, pending.updates, pending.deletes);
+        }
+    }
 }

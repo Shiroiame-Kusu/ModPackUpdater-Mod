@@ -5,6 +5,7 @@ import icu.nyat.kusunoki.modpackupdater.platform.Services;
 import icu.nyat.kusunoki.modpackupdater.updater.Config;
 import icu.nyat.kusunoki.modpackupdater.updater.UpdateRunner;
 import icu.nyat.kusunoki.modpackupdater.updater.api.ApiClient;
+import icu.nyat.kusunoki.modpackupdater.updater.UpdaterService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -27,7 +28,6 @@ public class ConfigScreen extends Screen {
     private EditBox packIdBox;
     private EditBox includePathsBox;
     private EditBox timeoutBox;
-    private Checkbox autoUpdateBox;
 
     // New config-folder behavior checkboxes
     private Checkbox overwriteConfigsBox;
@@ -35,7 +35,6 @@ public class ConfigScreen extends Screen {
     private Checkbox overwriteUnmanagedConfigsBox;
 
     private Button testButton;
-    private Button updateNowButton;
 
     // Data
     private Config config;
@@ -103,18 +102,11 @@ public class ConfigScreen extends Screen {
         scrolled.add(new WidgetEntry(includePathsBox, y));
         y += gap;
 
-        // Timeout + Auto update (same row)
+        // Timeout (single row)
         timeoutBox = new EditBox(this.font, fieldLeft, y, 140, 20, Component.literal("Timeout Seconds"));
         timeoutBox.setValue(String.valueOf(config.getTimeout().toSeconds()));
         this.addRenderableWidget(timeoutBox);
         scrolled.add(new WidgetEntry(timeoutBox, y));
-
-        autoUpdateBox = Checkbox.builder(Component.literal("Enable auto update"), this.font)
-                .pos(fieldLeft + 150, y - 1) // align baseline
-                .selected(config.isAutoUpdate())
-                .build();
-        this.addRenderableWidget(autoUpdateBox);
-        scrolled.add(new WidgetEntry(autoUpdateBox, y - 1));
         y += gap + 4;
 
         // Config folder behavior (only meaningful if 'config' is in includePaths)
@@ -136,6 +128,16 @@ public class ConfigScreen extends Screen {
         scrolled.add(new WidgetEntry(deleteExtraConfigsBox, y - 1));
         y += gap;
 
+        // Overwrite unmanaged configs (new row)
+//        overwriteUnmanagedConfigsBox = Checkbox.builder(Component.literal("Overwrite unmanaged configs"), this.font)
+//                .pos(fieldLeft, y - 1)
+//                .selected(config.isOverwriteUnmanagedConfigs())
+//                .build();
+//        overwriteUnmanagedConfigsBox.active = configIncluded;
+//        this.addRenderableWidget(overwriteUnmanagedConfigsBox);
+//        scrolled.add(new WidgetEntry(overwriteUnmanagedConfigsBox, y - 1));
+//        y += gap;
+
         // Buttons row 1
         int btnY = y;
         Button saveBtn = Button.builder(Component.literal("Save"), b -> saveAndClose())
@@ -156,24 +158,12 @@ public class ConfigScreen extends Screen {
         this.addRenderableWidget(testButton);
         scrolled.add(new WidgetEntry(testButton, btnY));
 
-        // Buttons row 2
-        btnY += gap;
-        Button resetBtn = Button.builder(Component.literal("Reset Defaults"), b -> resetDefaults())
-                .bounds(fieldLeft, btnY, 140, 20)
-                .build();
-        this.addRenderableWidget(resetBtn);
-        scrolled.add(new WidgetEntry(resetBtn, btnY));
-
-        updateNowButton = Button.builder(Component.literal("Run Update Now"), b -> runUpdateNow())
-                .bounds(fieldLeft + 150, btnY, 182, 20)
-                .build();
-        this.addRenderableWidget(updateNowButton);
-        scrolled.add(new WidgetEntry(updateNowButton, btnY));
-
         // Compute content & viewport heights
         int lastBaseY = btnY;
         contentHeight = (lastBaseY + 20) - panelTop + 20; // bottom of last row + padding
-        viewportHeight = Math.min(contentHeight, 240);    // visible area height
+        // Dynamic viewport height based on window size to prevent overflow
+        int available = Math.max(60, this.height - panelTop - 40); // 40 = status/footer area
+        viewportHeight = Math.min(contentHeight, available);
         clampScroll();
         applyScrollPositions();
     }
@@ -202,16 +192,14 @@ public class ConfigScreen extends Screen {
         packIdBox.setValue(config.getPackId());
         includePathsBox.setValue(String.join(", ", config.getIncludePaths()));
         timeoutBox.setValue(String.valueOf(config.getTimeout().toSeconds()));
-        boolean desired = config.isAutoUpdate();
-        if (autoUpdateBox.selected() != desired) autoUpdateBox.onPress();
         // Reset config-folder options
         boolean cfgIncluded = hasIncludeFolder(config.getIncludePaths(), "config");
         overwriteConfigsBox.active = cfgIncluded;
         deleteExtraConfigsBox.active = cfgIncluded;
-        overwriteUnmanagedConfigsBox.active = cfgIncluded;
+        if (overwriteUnmanagedConfigsBox != null) overwriteUnmanagedConfigsBox.active = cfgIncluded;
         if (overwriteConfigsBox.selected() != config.isOverwriteModifiedConfigs()) overwriteConfigsBox.onPress();
         if (deleteExtraConfigsBox.selected() != config.isDeleteExtraConfigs()) deleteExtraConfigsBox.onPress();
-        if (overwriteUnmanagedConfigsBox.selected() != config.isOverwriteUnmanagedConfigs()) overwriteUnmanagedConfigsBox.onPress();
+        if (overwriteUnmanagedConfigsBox != null && overwriteUnmanagedConfigsBox.selected() != config.isOverwriteUnmanagedConfigs()) overwriteUnmanagedConfigsBox.onPress();
         setStatus("Defaults restored (not saved yet)", 0xFFFFAA);
     }
 
@@ -234,20 +222,8 @@ public class ConfigScreen extends Screen {
     }
 
     private void runUpdateNow() {
-        updateNowButton.active = false;
-        setStatus("Updating...", 0xCCCCCC);
-        Path gameDir = Services.PLATFORM.getGameDirectory();
-        Config snapshot = snapshotConfigFromUI();
-        new Thread(() -> {
-            try {
-                new UpdateRunner(gameDir, snapshot).run();
-                setStatus("Update finished. See logs for details.", 0x55FF55);
-            } catch (Throwable t) {
-                setStatus("Update failed: " + t.getMessage(), 0xFF5555);
-            } finally {
-                updateNowButton.active = true;
-            }
-        }, "MPU-ManualUpdate").start();
+        // Removed manual update; updates are prompted on startup
+        setStatus("Manual update disabled. Updates are prompted on startup.", 0xFFFFAA);
     }
 
     private Config snapshotConfigFromUI() {
@@ -259,7 +235,6 @@ public class ConfigScreen extends Screen {
         int timeout = 30;
         try { timeout = Math.max(5, Integer.parseInt(timeoutBox.getValue().trim())); } catch (NumberFormatException ignored) {}
         c.setTimeoutSeconds(timeout);
-        c.setAutoUpdate(autoUpdateBox.selected());
         c.setIncludePaths(parseIncludePaths(includePathsBox.getValue()));
         // config-folder options
         c.setOverwriteModifiedConfigs(overwriteConfigsBox != null && overwriteConfigsBox.selected());
@@ -280,9 +255,13 @@ public class ConfigScreen extends Screen {
 
     private static boolean hasIncludeFolder(String[] includePaths, String folderName) {
         if (includePaths == null) return false;
+        String target = folderName.replace('\\', '/');
+        if (target.endsWith("/")) target = target.substring(0, target.length() - 1);
         for (String inc : includePaths) {
             if (inc == null || inc.isBlank()) continue;
-            if (inc.replace('\\', '/').equalsIgnoreCase(folderName)) return true;
+            String norm = inc.replace('\\', '/');
+            if (norm.endsWith("/")) norm = norm.substring(0, norm.length() - 1);
+            if (norm.equalsIgnoreCase(target)) return true;
         }
         return false;
     }
@@ -323,7 +302,8 @@ public class ConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float delta) {
         // Recompute viewport height in case of window changes
-        viewportHeight = Math.min(contentHeight, 240);
+        int available = Math.max(60, this.height - panelTop - 40);
+        viewportHeight = Math.min(contentHeight, available);
         clampScroll();
         applyScrollPositions();
 
@@ -346,7 +326,7 @@ public class ConfigScreen extends Screen {
         if (baseUrlBox.visible) drawLabelAbove(gfx, baseUrlBox, "Base URL", labelColor);
         if (packIdBox.visible) drawLabelAbove(gfx, packIdBox, "Pack ID", labelColor);
         if (includePathsBox.visible) drawLabelAbove(gfx, includePathsBox, "Include Paths (comma-separated)", labelColor);
-        if (timeoutBox.visible) drawLabelAbove(gfx, timeoutBox, "Timeout (seconds) & Auto Update", labelColor);
+        if (timeoutBox.visible) drawLabelAbove(gfx, timeoutBox, "Timeout (seconds)", labelColor);
         if (overwriteConfigsBox != null && deleteExtraConfigsBox != null && (overwriteConfigsBox.visible || deleteExtraConfigsBox.visible)) {
             int y = overwriteConfigsBox.getY() - 12;
             gfx.drawString(this.font, "Config folder options", overwriteConfigsBox.getX(), y, labelColor, false);

@@ -21,11 +21,8 @@ public class Config {
     @SerializedName("packId")
     private String packId = "example-pack";
 
-    @SerializedName("autoUpdate")
-    private boolean autoUpdate = true;
-
     @SerializedName("includePaths")
-    private String[] includePaths = new String[]{"mods", "config", "resourcepacks"};
+    private String[] includePaths = new String[]{"mods", "config", "resourcepacks", "options.txt"};
 
     @SerializedName("timeoutSeconds")
     private int timeoutSeconds = 30;
@@ -41,7 +38,7 @@ public class Config {
 
     // Delete extra config files (not in manifest) by default (matches previous behavior)
     @SerializedName("deleteExtraConfigs")
-    private boolean deleteExtraConfigs = true;
+    private boolean deleteExtraConfigs = false;
 
     public static Path configFile(Path gameDir) {
         return gameDir.resolve("config").resolve("modpackupdater.json");
@@ -81,13 +78,11 @@ public class Config {
 
     public String getBaseUrl() { return baseUrl; }
     public String getPackId() { return packId; }
-    public boolean isAutoUpdate() { return autoUpdate; }
     public String[] getIncludePaths() { return includePaths; }
     public Duration getTimeout() { return Duration.ofSeconds(Math.max(5, timeoutSeconds)); }
 
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
     public void setPackId(String packId) { this.packId = packId; }
-    public void setAutoUpdate(boolean autoUpdate) { this.autoUpdate = autoUpdate; }
     public void setIncludePaths(String[] includePaths) { this.includePaths = includePaths; }
     public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
 
@@ -100,4 +95,7 @@ public class Config {
 
     public boolean isDeleteExtraConfigs() { return deleteExtraConfigs; }
     public void setDeleteExtraConfigs(boolean deleteExtraConfigs) { this.deleteExtraConfigs = deleteExtraConfigs; }
+
+    public boolean isExternalApplierEnabled() { return false; } // legacy compatibility always false
+    public void setExternalApplier(boolean externalApplier) { /* no-op after revert */ }
 }

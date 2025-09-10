@@ -13,22 +13,22 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 public class FileUtils {
 
     public static List<DiffRequest.FileEntry> computeLocalState(Path gameDir, String[] includePaths) throws IOException {
         List<DiffRequest.FileEntry> list = new ArrayList<>();
         Set<Path> roots = new HashSet<>();
+        List<Path> singleFiles = new ArrayList<>();
         for (String inc : includePaths) {
             if (inc == null || inc.isBlank()) continue;
             Path p = gameDir.resolve(inc).normalize();
-            if (Files.isDirectory(p) && isSafeChild(gameDir, p)) {
+            if (!isSafeChild(gameDir, p)) continue;
+            if (Files.isDirectory(p)) {
                 roots.add(p);
+            } else if (Files.isRegularFile(p)) {
+                singleFiles.add(p);
             }
         }
         for (Path root : roots) {
@@ -47,6 +47,17 @@ public class FileUtils {
                     return FileVisitResult.CONTINUE;
                 }
             });
+        }
+        // Also include explicitly listed single files
+        for (Path f : singleFiles) {
+            String rel = gameDir.relativize(f).toString().replace('\\', '/');
+            try {
+                long size = Files.size(f);
+                String sha = sha256(f);
+                list.add(new DiffRequest.FileEntry(rel, sha, size));
+            } catch (Exception e) {
+                Constants.LOG.warn("Failed to hash {}: {}", rel, e.toString());
+            }
         }
         return list;
     }
@@ -80,4 +91,3 @@ public class FileUtils {
         return sb.toString();
     }
 }
-

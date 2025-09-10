@@ -2,6 +2,7 @@ package icu.nyat.kusunoki.modpackupdater.updater.api;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import icu.nyat.kusunoki.modpackupdater.Constants;
 import icu.nyat.kusunoki.modpackupdater.updater.Config;
 import icu.nyat.kusunoki.modpackupdater.updater.dto.Manifest;
@@ -54,6 +55,22 @@ public class ApiClient {
         Constants.LOG.info("HTTP {} {} in {} ms", code, path, tookMs);
         if (code != 200) throw new IOException("Manifest failed: HTTP " + code + " body=" + resp.body());
         return gson.fromJson(resp.body(), Manifest.class);
+    }
+
+    /** Fetch mods metadata list (separate endpoint as per updated API). */
+    public java.util.List<Manifest.ModEntry> getMods() throws IOException, InterruptedException {
+        String path = "/packs/" + url(packId) + "/mods";
+        Constants.LOG.info("HTTP GET {}", path);
+        long start = System.nanoTime();
+        HttpRequest req = baseGet(path).build();
+        HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+        long tookMs = (System.nanoTime() - start) / 1_000_000L;
+        int code = resp.statusCode();
+        Constants.LOG.info("HTTP {} {} in {} ms", code, path, tookMs);
+        if (code != 200) throw new IOException("Mods list failed: HTTP " + code + " body=" + resp.body());
+        java.lang.reflect.Type type = new TypeToken<java.util.List<Manifest.ModEntry>>(){}.getType();
+        java.util.List<Manifest.ModEntry> list = gson.fromJson(resp.body(), type);
+        return list != null ? list : java.util.List.of();
     }
 
     public long downloadFileToTemp(String relativePath, Path targetFile) throws IOException, InterruptedException {
